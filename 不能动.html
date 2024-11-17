@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商品库存与销售差额计算</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .bg-gradient-to-br {
+            background-image: linear-gradient(to bottom right, var(--tw-gradient-stops));
+        }
+        .from-gray-50 {
+            --tw-gradient-from: #F9FAFB;
+            --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(249, 250, 251, 0));
+        }
+        .to-gray-100 {
+            --tw-gradient-to: #F3F4F6;
+        }
+        .from-blue-400 {
+            --tw-gradient-from: #60A5FA;
+            --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(96, 165, 250, 0));
+        }
+        .to-teal-300 {
+            --tw-gradient-to: #5EEAD4;
+        }
+        .from-blue-500 {
+            --tw-gradient-from: #3B82F6;
+            --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(59, 130, 246, 0));
+        }
+        .to-teal-400 {
+            --tw-gradient-to: #2DD4BF;
+        }
+        .bg-clip-text {
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+    <div class="container mx-auto p-4 max-w-5xl">
+        <h1 class="text-4xl font-bold mb-8 text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-teal-400">商品库存与销售差额计算</h1>
+        
+        <div class="mb-8 shadow-lg overflow-hidden rounded-xl bg-gradient-to-br from-blue-400 to-teal-300">
+            <div class="p-6 flex flex-col items-center">
+                <label for="productData" class="block text-xl font-semibold text-white mb-6">
+                    请输入商品数据：
+                </label>
+                <textarea
+                    id="productData"
+                    placeholder="粘贴商品数据在这里..."
+                    class="min-h-[200px] bg-white/90 border-none focus:ring-blue-500 rounded-lg mx-auto my-6 w-[calc(100%-3rem)]"
+                    rows="10"
+                    aria-label="商品数据输入区域"
+                ></textarea>
+            </div>
+        </div>
+        
+        <div class="flex justify-center space-x-4 mb-8">
+            <button id="processBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-full transition duration-300 ease-in-out transform hover:scale-105 flex items-center">
+                处理空格并计算
+            </button>
+            <button id="clearBtn" class="border border-red-500 text-red-500 hover:bg-red-50 px-6 py-2 rounded-full transition duration-300 ease-in-out transform hover:scale-105 flex items-center">
+                清空
+            </button>
+        </div>
+
+        <div id="productDetails" class="hidden">
+            <div id="productCards" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mb-8">
+                <!-- Product cards will be dynamically inserted here -->
+            </div>
+
+            <hr class="my-8 border-t border-gray-300">
+
+            <div class="bg-gradient-to-r from-blue-500 to-teal-400 text-white shadow-xl rounded-lg overflow-hidden">
+                <div class="p-4">
+                    <h2 class="text-2xl font-bold flex items-center">
+                        总计
+                    </h2>
+                </div>
+                <div class="p-6">
+                    <div class="grid gap-4 text-lg">
+                        <div class="flex justify-between items-center">
+                            <span>总销售数:</span>
+                            <span id="totalSales" class="font-bold text-2xl">0 份</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span>中心仓可履约库存:</span>
+                            <span id="centerWarehouse" class="font-bold text-2xl">0 份</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span>总差额:</span>
+                            <span id="totalDifference" class="font-bold text-2xl">0 份</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const productData = document.getElementById('productData');
+        const processBtn = document.getElementById('processBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const productDetails = document.getElementById('productDetails');
+        const productCards = document.getElementById('productCards');
+        const totalSales = document.getElementById('totalSales');
+        const centerWarehouse = document.getElementById('centerWarehouse');
+        const totalDifference = document.getElementById('totalDifference');
+
+        processBtn.addEventListener('click', processText);
+        clearBtn.addEventListener('click', clearData);
+
+        function processText() {
+            let inputText = productData.value;
+
+            // 去除空格，按行处理
+            let lines = inputText.split("\n");
+            let outputText = '';
+            let isPreviousLineOrder = false;
+
+            lines.forEach(line => {
+                let cleanedLine = line.trim();
+
+                if (cleanedLine === "") return;
+                cleanedLine = cleanedLine.replace(/\s+/g, ' ');
+
+                if (cleanedLine.includes("预约送货")) {
+                    outputText += cleanedLine + '\n';
+                    isPreviousLineOrder = true;
+                } else {
+                    if (isPreviousLineOrder) {
+                        outputText += '\n' + cleanedLine;
+                        isPreviousLineOrder = false;
+                    } else {
+                        outputText += cleanedLine + '\n';
+                    }
+                }
+            });
+
+            productData.value = outputText.trim(); // 更新文本区域
+
+            calculate(); // 调用第二段代码的计算功能
+        }
+
+        function calculate() {
+            const itemRegex = /(【?([^【】]+)】?)(.*?不委托.*?)?\s*总销售数\/销售库存\s*(\d+)\s*份.*?中心仓可履约库存\s*(\d+)\s*份/s;
+            const matches = productData.value.split(/\n\n+/);
+
+            let newTotalSales = 0;
+            let newCenterWarehouse = 0;
+            let newTotalDifference = 0;
+            productCards.innerHTML = '';
+
+            matches.forEach(item => {
+                const itemMatch = item.match(itemRegex);
+
+                if (itemMatch) {
+                    const itemName = itemMatch[2].trim();
+                    const additionalInfo = itemMatch[3] ? itemMatch[3].trim() : "";
+                    const fullItemName = additionalInfo ? `${itemName} ${additionalInfo}` : itemName;
+
+                    const salesCount = parseInt(itemMatch[4], 10);
+                    const warehouseCount = parseInt(itemMatch[5], 10);
+                    const difference = warehouseCount - salesCount;
+
+                    newTotalSales += salesCount;
+                    newCenterWarehouse += warehouseCount;
+                    newTotalDifference += difference;
+
+                    const card = document.createElement('div');
+                    card.className = 'overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 rounded-lg';
+                    card.innerHTML = `
+                        <div class="bg-gradient-to-r from-blue-500 to-teal-400 text-white p-3">
+                            <h3 class="text-sm font-semibold line-clamp-3">${fullItemName}</h3>
+                        </div>
+                        <div class="p-3 bg-black">
+                            <div class="space-y-2 text-sm text-white">
+                                <p class="flex justify-between"><span class="text-gray-600">总销售数:</span> <span class="font-medium">${salesCount} 份</span></p>
+                                <p class="flex justify-between"><span class="text-gray-600">中心仓可履约库存:</span> <span class="font-medium">${warehouseCount} 份</span></p>
+                                <p class="flex justify-between"><span class="text-gray-600">差额:</span> <span class="font-medium">${difference} 份</span></p>
+                            </div>
+                        </div>
+                    `;
+                    productCards.appendChild(card);
+                }
+            });
+
+            totalSales.textContent = `${newTotalSales} 份`;
+            centerWarehouse.textContent = `${newCenterWarehouse} 份`;
+            totalDifference.textContent = `${newTotalDifference} 份`;
+
+            productDetails.classList.remove('hidden');
+        }
+
+        function clearData() {
+            productData.value = '';
+            productDetails.classList.add('hidden');
+            productCards.innerHTML = '';
+            totalSales.textContent = '0 份';
+            centerWarehouse.textContent = '0 份';
+            totalDifference.textContent = '0 份';
+        }
+    </script>
+</body>
+</html>

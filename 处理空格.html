@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>去除空格工具</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #input-area, #output-area {
+            width: 100%;
+            height: 200px;
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            overflow-y: auto;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .output {
+            white-space: pre-wrap;
+            font-family: monospace;
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>去除空格工具</h1>
+    <p>将要处理的文本粘贴到下方框中，然后点击“去除空格”按钮：</p>
+
+    <textarea id="input-area" placeholder="粘贴你的信息在这里..."></textarea><br>
+    <button onclick="processText()">去除空格</button>
+
+    <h2>处理后的结果</h2>
+    <div id="output-area" class="output"></div>
+
+    <script>
+        function processText() {
+            // 获取输入的文本
+            let inputText = document.getElementById("input-area").value;
+
+            // 按换行符分割每一行
+            let lines = inputText.split("\n");
+
+            // 用来存储处理后的内容
+            let outputText = '';
+            let isPreviousLineOrder = false;  // 标记上一行是否为“预约送货”
+
+            // 处理每一行
+            lines.forEach(line => {
+                // 移除每行前后的多余空格
+                let cleanedLine = line.trim();
+
+                // 如果行内容为空，则跳过
+                if (cleanedLine === "") {
+                    return;
+                }
+
+                // 清理行内多余的空格，只保留一个空格
+                cleanedLine = cleanedLine.replace(/\s+/g, ' ');
+
+                // 如果是“预约送货”，我们保留空格后换行
+                if (cleanedLine.includes("预约送货")) {
+                    outputText += cleanedLine + '\n'; // 保留“预约送货”后的换行
+                    isPreviousLineOrder = true;
+                } else {
+                    if (isPreviousLineOrder) {
+                        // 在“预约送货”之后保留一个空行
+                        outputText += '\n' + cleanedLine;
+                        isPreviousLineOrder = false;
+                    } else {
+                        outputText += cleanedLine + '\n';
+                    }
+                }
+            });
+
+            // 输出结果
+            document.getElementById("output-area").textContent = outputText.trim();
+        }
+    </script>
+</body>
+</html>
